@@ -11,6 +11,8 @@ ATerrainGen::ATerrainGen()
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 	
+
+	ChunkSize = FVector{ 5000.f, 5000.f, 1000.f };
 	SizeX = SizeY = 200;
 	Scale = 25.f;
 	Octaves = 4;
@@ -18,6 +20,7 @@ ATerrainGen::ATerrainGen()
 	Lacunarity = 2;
 	Seed = FMath::Rand();
 	HeightMultiplier = 25.f;
+	
 
 	RuntimeMesh = CreateDefaultSubobject<URuntimeMeshComponent>(TEXT("Runtime Mesh"));
 }
@@ -27,15 +30,15 @@ void ATerrainGen::BeginPlay()
 {
 	Super::BeginPlay();
 
-
+	TArray<float> HeightMap = GenerateHeightMap(SizeX, SizeY, Scale, Octaves, Persistence, Lacunarity, Offset, Seed);
+	CreateMesh(HeightMap);
 }
 
 // Called every frame
 void ATerrainGen::Tick( float DeltaTime )
 {
 	Super::Tick( DeltaTime );
-	TArray<float> HeightMap = GenerateHeightMap(SizeX, SizeY, Scale, Octaves, Persistence, Lacunarity, Offset, Seed);
-	CreateMesh(HeightMap);
+	
 
 
 }
@@ -105,9 +108,16 @@ TArray<float> ATerrainGen::GenerateHeightMap(int32 SizeX, int32 SizeY, float Sca
 }
 
 void ATerrainGen::CreateMesh(const TArray<float>& HeightMap)
-{
+{	
 	TArray<FRuntimeMeshVertexSimple> Vertices;
 	TArray<int32> Triangles;
+
+	FVector MeshScale = ChunkSize;
+	MeshScale.X /= SizeX;
+	MeshScale.Y /= SizeY;
+	MeshScale.Z /= HeightMultiplier;
+
+	RuntimeMesh->SetRelativeScale3D(MeshScale);
 
 	float TopLeftX = (SizeX - 1) / 2.f;
 	float TopLeftY = (SizeY - 1) / -2.f;
@@ -116,13 +126,35 @@ void ATerrainGen::CreateMesh(const TArray<float>& HeightMap)
 	for (int y = 0; y < SizeY; ++y)
 		for (int x = 0; x < SizeX; ++x)
 		{
-			FVector pos;
-			pos.X = TopLeftX - x;
-			pos.Y = TopLeftY + y;
-			pos.Z = HeightMap[y * SizeX + x] * HeightMultiplier;
+			FRuntimeMeshVertexSimple Vertex;
 			
-			Vertices.Add(FRuntimeMeshVertexSimple(pos));
+			FVector Position;
+			Position.X = TopLeftX - x;
+			Position.Y = TopLeftY + y;
+			Position.Z = HeightMap[y * SizeX + x] * HeightMultiplier;
+			Vertex.Position = Position;
 
+			FColor Color = FColor::Green;
+			if (TerrainLayers.Num() > 0)
+			{
+				//TODO: sorting
+				for (const FTerrainLayer& Layer : TerrainLayers)
+				{
+					if (Position.Z < Layer.MaxHeight)
+					{
+						Color = Layer.Color;
+						break;
+					}
+				}
+			}
+			Vertex.Color = Color;
+
+			FVector2D UV0;
+			UV0.X = x / SizeX;
+			UV0.Y = y / SizeY;
+			Vertex.UV0 = UV0;
+			Vertices.Add(FRuntimeMeshVertexSimple{ Position, Color }); //TODO: pixel colors
+			
 			if (x < SizeX - 1 && y < SizeY - 1)
 			{
 				Triangles.Add(vertexIndex);
@@ -137,6 +169,8 @@ void ATerrainGen::CreateMesh(const TArray<float>& HeightMap)
 			vertexIndex++;
 		}
 
+	if (Material != nullptr)
+		RuntimeMesh->SetMaterial(0, Material);
 	RuntimeMesh->CreateMeshSection(0, Vertices, Triangles);
 	
 }

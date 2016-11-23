@@ -9,6 +9,28 @@
 #include "TerrainGen.generated.h"
 
 
+USTRUCT()
+struct FTerrainLayer
+{
+	GENERATED_BODY()
+public:
+	UPROPERTY(EditAnywhere)
+	float MinHeight;
+
+	UPROPERTY(EditAnywhere)
+	float MaxHeight;
+
+	UPROPERTY(EditAnywhere)
+	FColor Color;
+		
+	FTerrainLayer()
+	{
+		MinHeight = 0.f;
+		MaxHeight = 0.f;
+		Color = FColor{};
+	}
+};
+
 UCLASS()
 class NOMANSFLIGHT_API ATerrainGen : public AActor
 {
@@ -29,6 +51,9 @@ public:
 	
 	void CreateMesh(const TArray<float>& HeightMap);
 
+	UPROPERTY(EditAnywhere)
+	FVector ChunkSize;
+	
 	UPROPERTY(EditAnywhere, Meta = (UIMin = 1))
 	int SizeX;
 
@@ -55,6 +80,12 @@ public:
 
 	UPROPERTY(EditAnywhere)
 	float HeightMultiplier;
+
+	UPROPERTY(EditAnywhere)
+	TArray<FTerrainLayer> TerrainLayers;
+
+	UPROPERTY(EditAnywhere)
+	UMaterial * Material;
 
 	UPROPERTY(EditAnywhere)
 	URuntimeMeshComponent* RuntimeMesh;
