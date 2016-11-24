@@ -13,7 +13,7 @@ ATerrainGen::ATerrainGen()
 	
 
 	ChunkSize = FVector{ 5000.f, 5000.f, 1000.f };
-	SizeX = SizeY = 200;
+	ResX = ResY = 200;
 	Scale = 25.f;
 	Octaves = 4;
 	Persistence = 0.5f;
@@ -30,7 +30,7 @@ void ATerrainGen::BeginPlay()
 {
 	Super::BeginPlay();
 
-	TArray<float> HeightMap = GenerateHeightMap(SizeX, SizeY, Scale, Octaves, Persistence, Lacunarity, Offset, Seed);
+	TArray<float> HeightMap = GenerateHeightMap(ResX, ResY, Scale, Octaves, Persistence, Lacunarity, Offset, Seed);
 	CreateMesh(HeightMap);
 }
 
@@ -113,25 +113,25 @@ void ATerrainGen::CreateMesh(const TArray<float>& HeightMap)
 	TArray<int32> Triangles;
 
 	FVector MeshScale = ChunkSize;
-	MeshScale.X /= SizeX;
-	MeshScale.Y /= SizeY;
+	MeshScale.X /= ResX;
+	MeshScale.Y /= ResY;
 	MeshScale.Z /= HeightMultiplier;
 
 	RuntimeMesh->SetRelativeScale3D(MeshScale);
 
-	float TopLeftX = (SizeX - 1) / 2.f;
-	float TopLeftY = (SizeY - 1) / -2.f;
+	float TopLeftX = (ResX - 1) / 2.f;
+	float TopLeftY = (ResY - 1) / -2.f;
 
 	int vertexIndex = 0;
-	for (int y = 0; y < SizeY; ++y)
-		for (int x = 0; x < SizeX; ++x)
+	for (int y = 0; y < ResY; ++y)
+		for (int x = 0; x < ResX; ++x)
 		{
 			FRuntimeMeshVertexSimple Vertex;
 			
 			FVector Position;
 			Position.X = TopLeftX - x;
 			Position.Y = TopLeftY + y;
-			Position.Z = HeightMap[y * SizeX + x] * HeightMultiplier;
+			Position.Z = HeightMap[y * ResX + x] * HeightMultiplier;
 			Vertex.Position = Position;
 
 			FColor Color = FColor::Green;
@@ -150,18 +150,18 @@ void ATerrainGen::CreateMesh(const TArray<float>& HeightMap)
 			Vertex.Color = Color;
 
 			FVector2D UV0;
-			UV0.X = x / SizeX;
-			UV0.Y = y / SizeY;
+			UV0.X = x / ResX;
+			UV0.Y = y / ResY;
 			Vertex.UV0 = UV0;
 			Vertices.Add(FRuntimeMeshVertexSimple{ Position, Color }); //TODO: pixel colors
 			
-			if (x < SizeX - 1 && y < SizeY - 1)
+			if (x < ResX - 1 && y < ResY - 1)
 			{
 				Triangles.Add(vertexIndex);
-				Triangles.Add(vertexIndex + SizeX + 1);
-				Triangles.Add(vertexIndex + SizeX);
+				Triangles.Add(vertexIndex + ResX + 1);
+				Triangles.Add(vertexIndex + ResX);
 
-				Triangles.Add(vertexIndex + SizeX + 1);
+				Triangles.Add(vertexIndex + ResX + 1);
 				Triangles.Add(vertexIndex);
 				Triangles.Add(vertexIndex + 1);
 			}

@@ -54,37 +54,37 @@ public:
 	UPROPERTY(EditAnywhere)
 	FVector ChunkSize;
 	
-	UPROPERTY(EditAnywhere, Meta = (UIMin = 1))
-	int SizeX;
+	UPROPERTY(Category = Noise, EditAnywhere, Meta = (UIMin = 1))
+	int ResX;
 
-	UPROPERTY(EditAnywhere, Meta = (UIMin = 1))
-	int SizeY;
+	UPROPERTY(Category = Noise, EditAnywhere, Meta = (UIMin = 1))
+	int ResY;
 
-	UPROPERTY(EditAnywhere, Meta = (UIMin = 0.0001f))
+	UPROPERTY(Category = Noise, EditAnywhere, Meta = (UIMin = 0.0001f))
 	float Scale;
 
-	UPROPERTY(EditAnywhere, Meta = (UIMin = 0))
+	UPROPERTY(Category = Noise, EditAnywhere, Meta = (UIMin = 0))
 	int32 Octaves;
 
-	UPROPERTY(EditAnywhere, Meta = (UIMin = 0.f, UIMax = 1.f))
+	UPROPERTY(Category = Noise, EditAnywhere, Meta = (UIMin = 0.f, UIMax = 1.f))
 	float Persistence;
 
-	UPROPERTY(EditAnywhere, Meta = (UIMin = 1))
+	UPROPERTY(Category = Noise, EditAnywhere, Meta = (UIMin = 1))
 	float Lacunarity;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(Category = Noise, EditAnywhere)
 	FVector2D Offset;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(Category = Noise, EditAnywhere)
 	int32 Seed;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(Category = Mesh, EditAnywhere)
 	float HeightMultiplier;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(Category = Mesh, EditAnywhere)
 	TArray<FTerrainLayer> TerrainLayers;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(Category = Mesh, EditAnywhere)
 	UMaterial * Material;
 
 	UPROPERTY(EditAnywhere)
