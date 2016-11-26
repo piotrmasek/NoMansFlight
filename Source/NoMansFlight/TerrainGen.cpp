@@ -13,6 +13,8 @@ ATerrainGen::ATerrainGen()
 	
 
 	ChunkSize = FVector{ 5000.f, 5000.f, 1000.f };
+	ChunkVisibilityRange = 3;
+
 	ResX = ResY = 200;
 	Scale = 25.f;
 	Octaves = 4;
@@ -30,8 +32,15 @@ void ATerrainGen::BeginPlay()
 {
 	Super::BeginPlay();
 
-	TArray<float> HeightMap = GenerateHeightMap(ResX, ResY, Scale, Octaves, Persistence, Lacunarity, Offset, Seed);
-	CreateMesh(HeightMap);
+	/*TArray<float> HeightMap = GenerateHeightMap(ResX, ResY, Scale, Octaves, Persistence, Lacunarity, Offset, Seed);
+	CreateMesh(HeightMap);*/
+	//for (int i = 0; i < 9; i++)
+	//{
+	//	CreateChunk(FIntVector{ i });
+	//}
+	
+	FTimerHandle DummyHandle;
+	GetWorld()->GetTimerManager().SetTimer(DummyHandle, this, &ATerrainGen::UpdateChunks, 1.f, true); //TODO: add timer settings n stuff
 }
 
 // Called every frame
@@ -39,7 +48,6 @@ void ATerrainGen::Tick( float DeltaTime )
 {
 	Super::Tick( DeltaTime );
 	
-
 
 }
 
@@ -174,4 +182,46 @@ void ATerrainGen::CreateMesh(const TArray<float>& HeightMap)
 	RuntimeMesh->CreateMeshSection(0, Vertices, Triangles);
 	
 }
+
+void ATerrainGen::UpdateChunks()
+{
+	FVector PlayerPos = UGameplayStatics::GetPlayerPawn(GetWorld(), 0)->GetActorLocation() - GetActorLocation(); //TODO: various playerids?
+	PlayerPos /= ChunkSize;
+	FIntVector PlayerChunkCoord{ (int32)PlayerPos.X, (int32)PlayerPos.Y, (int32)PlayerPos.Z };
+	
+	for(int32 y = PlayerChunkCoord.Y - ChunkVisibilityRange; y <= PlayerChunkCoord.Y + ChunkVisibilityRange; ++y)
+		for (int32 x = PlayerChunkCoord.X - ChunkVisibilityRange; x <= PlayerChunkCoord.X + ChunkVisibilityRange; ++x)
+		{
+			if (nullptr == TerrainChunks.FindByPredicate([&](UTerrainChunk* Chunk) {return Chunk->ChunkCoord.X == x && Chunk->ChunkCoord.Y == y; }))
+			{
+				CreateChunk(FIntVector{ x, y, 0 });
+			}
+		}
+
+
+}
+
+void ATerrainGen::CreateChunk(FIntVector ChunkCoord)
+{
+	FName ChunkName{ *FString::Printf(TEXT("TerrainChunk_%d_%d"), ChunkCoord.X, ChunkCoord.Y) };
+
+	UTerrainChunk* NewChunk = NewObject<UTerrainChunk>(this, ChunkName);
+	NewChunk->ChunkCoord = ChunkCoord;
+	
+	FVector MeshScale = ChunkSize;
+	MeshScale.X /= ResX;
+	MeshScale.Y /= ResY;
+	MeshScale.Z /= HeightMultiplier;
+	NewChunk->MeshScale = MeshScale;
+	
+	TerrainChunks.Add(NewChunk);
+	NewChunk->Init();
+}
+
+void ATerrainGen::RemoveChunk(UTerrainChunk* ChunkToRemove)
+{
+	TerrainChunks.Remove(ChunkToRemove);
+	ChunkToRemove->DestroyComponent();
+}
+
 

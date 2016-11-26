@@ -4,9 +4,10 @@
 
 #include "GameFramework/Actor.h"
 #include "RuntimeMeshComponent.h"
-
+#include "TerrainChunk.h"
 
 #include "TerrainGen.generated.h"
+
 
 
 USTRUCT()
@@ -31,7 +32,7 @@ public:
 	}
 };
 
-UCLASS()
+UCLASS(config=TerrainGen)
 class NOMANSFLIGHT_API ATerrainGen : public AActor
 {
 	GENERATED_BODY()
@@ -53,32 +54,35 @@ public:
 
 	UPROPERTY(EditAnywhere)
 	FVector ChunkSize;
+
+	UPROPERTY(EditAnywhere)
+	int32 ChunkVisibilityRange;
 	
-	UPROPERTY(Category = Noise, EditAnywhere, Meta = (UIMin = 1))
+	UPROPERTY(Category = Noise, EditAnywhere, Config, Meta = (UIMin = 1))
 	int ResX;
 
-	UPROPERTY(Category = Noise, EditAnywhere, Meta = (UIMin = 1))
+	UPROPERTY(Category = Noise, EditAnywhere, Config, Meta = (UIMin = 1))
 	int ResY;
 
-	UPROPERTY(Category = Noise, EditAnywhere, Meta = (UIMin = 0.0001f))
+	UPROPERTY(Category = Noise, EditAnywhere, Config, Meta = (UIMin = 0.0001f))
 	float Scale;
 
-	UPROPERTY(Category = Noise, EditAnywhere, Meta = (UIMin = 0))
+	UPROPERTY(Category = Noise, EditAnywhere, Config, Meta = (UIMin = 0))
 	int32 Octaves;
 
-	UPROPERTY(Category = Noise, EditAnywhere, Meta = (UIMin = 0.f, UIMax = 1.f))
+	UPROPERTY(Category = Noise, EditAnywhere, Config, Meta = (UIMin = 0.f, UIMax = 1.f))
 	float Persistence;
 
-	UPROPERTY(Category = Noise, EditAnywhere, Meta = (UIMin = 1))
+	UPROPERTY(Category = Noise, EditAnywhere, Config, Meta = (UIMin = 1))
 	float Lacunarity;
 
-	UPROPERTY(Category = Noise, EditAnywhere)
+	UPROPERTY(Category = Noise, EditAnywhere, Config)
 	FVector2D Offset;
 
-	UPROPERTY(Category = Noise, EditAnywhere)
+	UPROPERTY(Category = Noise, EditAnywhere, Config)
 	int32 Seed;
 
-	UPROPERTY(Category = Mesh, EditAnywhere)
+	UPROPERTY(Category = Mesh, EditAnywhere, Config)
 	float HeightMultiplier;
 
 	UPROPERTY(Category = Mesh, EditAnywhere)
@@ -90,6 +94,13 @@ public:
 	UPROPERTY(EditAnywhere)
 	URuntimeMeshComponent* RuntimeMesh;
 
-private:
+	UPROPERTY(EditAnywhere)
+	TArray<UTerrainChunk*> TerrainChunks;
 
+private:
+	void UpdateChunks();
+	void CreateChunk(FIntVector ChunkCoord);
+	void RemoveChunk(UTerrainChunk* ChunkToRemove);
+
+	
 };
