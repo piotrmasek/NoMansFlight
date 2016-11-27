@@ -4,6 +4,7 @@
 #include "TerrainChunk.h"
 #include "RuntimeMeshComponent.h"
 #include "RuntimeMeshLibrary.h"
+#include "TerrainGen.h"
 
 
 // Sets default values for this component's properties
@@ -11,10 +12,10 @@ UTerrainChunk::UTerrainChunk()
 {
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
-	bWantsInitializeComponent = true;
+	bWantsBeginPlay = true;
 	PrimaryComponentTick.bCanEverTick = true;
 
-
+	Id = -1;
 	// ...
 
 	//RuntimeMesh = CreateDefaultSubobject<URuntimeMeshComponent>(TEXT("Runtime Mesh"));
@@ -23,23 +24,35 @@ UTerrainChunk::UTerrainChunk()
 
 
 // Called when the game starts
-void UTerrainChunk::InitializeComponent()
+void UTerrainChunk::BeginPlay()
 {
-	Super::InitializeComponent();
+	Super::BeginPlay();
 	
 	
 	// ...
 }
 
 
-void UTerrainChunk::Init()
+void UTerrainChunk::Init(int32 ChunkId)
 {
+	Id = ChunkId;
+	
+	TerrainGen = Cast<ATerrainGen>(GetOwner());
+	check(TerrainGen);
+	if (TerrainGen)
+	{
+		RuntimeMesh = TerrainGen->RuntimeMesh;
+	}
+	check(RuntimeMesh);
+	if (RuntimeMesh == nullptr)
+	{
+		UE_LOG(LogTemp, Error, TEXT("RuntimeMesh in parent is null!"));
+	}
+	
 	SetWorldLocation(FVector{ ChunkCoord.X * 200.f, ChunkCoord.Y * 200.f, 0.f });
 
 	FName MeshName{ *FString::Printf(TEXT("ChunkMesh_%d_%d"), ChunkCoord.X, ChunkCoord.Y) };
-	RuntimeMesh = NewObject<URuntimeMeshComponent>(this, MeshName);
-	FAttachmentTransformRules TransformRules{ EAttachmentRule::SnapToTarget, false };
-	RuntimeMesh->AttachToComponent(this, TransformRules);
+	
 
 	TArray<FVector> Vertices;
 	TArray<FVector> Normals;
@@ -48,11 +61,12 @@ void UTerrainChunk::Init()
 	TArray<int32> Triangles;
 
 	URuntimeMeshLibrary::CreateBoxMesh(FVector(200, 200, 25), Vertices, Triangles, Normals, TextureCoordinates, Tangents);
-
+	for (auto& Vertex : Vertices)
+		Vertex += GetComponentLocation();
 
 	RuntimeMesh->SetRelativeScale3D(MeshScale);
 	// Create the mesh section specifying collision
-	RuntimeMesh->CreateMeshSection(0, Vertices, Triangles, Normals, TextureCoordinates, TArray<FColor>(), Tangents, true, EUpdateFrequency::Infrequent);
+	RuntimeMesh->CreateMeshSection(Id, Vertices, Triangles, Normals, TextureCoordinates, TArray<FColor>(), Tangents, true, EUpdateFrequency::Infrequent);
 }
 
 // Called every frame
@@ -61,5 +75,10 @@ void UTerrainChunk::TickComponent( float DeltaTime, ELevelTick TickType, FActorC
 	Super::TickComponent( DeltaTime, TickType, ThisTickFunction );
 
 	// ...
+}
+
+void UTerrainChunk::OnComponentDestroyed(bool bDestroyingHierarchy)
+{
+	RuntimeMesh->ClearMeshSection(Id);
 }
 

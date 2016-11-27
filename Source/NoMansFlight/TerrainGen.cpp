@@ -23,7 +23,7 @@ ATerrainGen::ATerrainGen()
 	Seed = FMath::Rand();
 	HeightMultiplier = 25.f;
 	
-
+	
 	RuntimeMesh = CreateDefaultSubobject<URuntimeMeshComponent>(TEXT("Runtime Mesh"));
 }
 
@@ -185,10 +185,11 @@ void ATerrainGen::CreateMesh(const TArray<float>& HeightMap)
 
 void ATerrainGen::UpdateChunks()
 {
-	FVector PlayerPos = UGameplayStatics::GetPlayerPawn(GetWorld(), 0)->GetActorLocation() - GetActorLocation(); //TODO: various playerids?
+	FVector PlayerPos = UGameplayStatics::GetPlayerPawn(GetWorld(), 0)->GetActorLocation();//TODO: various playerids?
+	UE_LOG(LogTemp, Log, TEXT("PPos = %s"), *PlayerPos.ToString());
 	PlayerPos /= ChunkSize;
 	FIntVector PlayerChunkCoord{ (int32)PlayerPos.X, (int32)PlayerPos.Y, (int32)PlayerPos.Z };
-	
+	UE_LOG(LogTemp, Log, TEXT("CCoord = %s"), *PlayerChunkCoord.ToString());
 	for(int32 y = PlayerChunkCoord.Y - ChunkVisibilityRange; y <= PlayerChunkCoord.Y + ChunkVisibilityRange; ++y)
 		for (int32 x = PlayerChunkCoord.X - ChunkVisibilityRange; x <= PlayerChunkCoord.X + ChunkVisibilityRange; ++x)
 		{
@@ -197,6 +198,14 @@ void ATerrainGen::UpdateChunks()
 				CreateChunk(FIntVector{ x, y, 0 });
 			}
 		}
+
+	for (auto& Chunk : TerrainChunks)
+	{
+		if (FMath::Abs(Chunk->ChunkCoord.X - PlayerChunkCoord.X) > ChunkVisibilityRange || FMath::Abs(Chunk->ChunkCoord.Y - PlayerChunkCoord.Y) > ChunkVisibilityRange)
+		{
+			RemoveChunk(Chunk);
+		}
+	}
 
 
 }
@@ -207,15 +216,18 @@ void ATerrainGen::CreateChunk(FIntVector ChunkCoord)
 
 	UTerrainChunk* NewChunk = NewObject<UTerrainChunk>(this, ChunkName);
 	NewChunk->ChunkCoord = ChunkCoord;
-	
+
 	FVector MeshScale = ChunkSize;
 	MeshScale.X /= ResX;
 	MeshScale.Y /= ResY;
 	MeshScale.Z /= HeightMultiplier;
 	NewChunk->MeshScale = MeshScale;
-	
+
 	TerrainChunks.Add(NewChunk);
-	NewChunk->Init();
+	
+	FAttachmentTransformRules TransRules{ EAttachmentRule::KeepWorld, false };
+	NewChunk->AttachToComponent(GetRootComponent(), TransRules);
+	NewChunk->Init(RuntimeMesh->FirstAvailableMeshSectionIndex(0));
 }
 
 void ATerrainGen::RemoveChunk(UTerrainChunk* ChunkToRemove)

@@ -101,6 +101,5 @@ private:
 	void UpdateChunks();
 	void CreateChunk(FIntVector ChunkCoord);
 	void RemoveChunk(UTerrainChunk* ChunkToRemove);
-
 	
 };

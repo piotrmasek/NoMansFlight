@@ -2,8 +2,10 @@
 
 #pragma once
 
-#include "Components/SceneComponent.h"
+#include "RuntimeMeshComponent.h"
 #include "TerrainChunk.generated.h"
+
+
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class NOMANSFLIGHT_API UTerrainChunk : public USceneComponent
@@ -15,12 +17,15 @@ public:
 	UTerrainChunk();
 
 	// Called when the game starts
-	virtual void InitializeComponent() override;
+	virtual void BeginPlay() override;
 
-	void Init();
+	void Init(int32 Id);
 	
 	// Called every frame
 	virtual void TickComponent( float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction ) override;
+	
+	UPROPERTY(VisibleAnywhere)
+	int32 Id;
 	
 	UPROPERTY(EditAnywhere)
 	FIntVector ChunkCoord;
@@ -40,4 +45,7 @@ private:
 
 
 	
+public:
+	virtual void OnComponentDestroyed(bool bDestroyingHierarchy) override;
+
 };
