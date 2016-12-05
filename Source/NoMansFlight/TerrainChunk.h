@@ -1,8 +1,9 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
+#include "Components/SceneComponent.h"
+#include "HelperTypes.h"
 
-#include "RuntimeMeshComponent.h"
 #include "TerrainChunk.generated.h"
 
 
@@ -31,18 +32,24 @@ public:
 	FIntVector ChunkCoord;
 
 	UPROPERTY(EditAnywhere)
-	FVector MeshScale;
+	FVector ChunkSize;
 
 	UPROPERTY(EditAnywhere)
 	class URuntimeMeshComponent* RuntimeMesh;
+
 private:
+
 	UPROPERTY()
 	class ATerrainGen* TerrainGen;
-
-
-
 	
+	
+	FNoiseParams NoiseParams;
+	FMeshParams MeshParams;
 
+	TArray<float> HeightMap;
+	
+	
+	void GenerateMesh();
 
 	
 public:
