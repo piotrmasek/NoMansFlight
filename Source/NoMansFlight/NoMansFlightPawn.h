@@ -61,6 +61,7 @@ private:
 	float MinSpeed;
 
 	/** Current forward speed */
+	UPROPERTY(Category = Flight, VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	float CurrentForwardSpeed;
 
 	/** Current yaw speed */
@@ -79,4 +80,6 @@ public:
 	FORCEINLINE class USpringArmComponent* GetSpringArm() const { return SpringArm; }
 	/** Returns Camera subobject **/
 	FORCEINLINE class UCameraComponent* GetCamera() const { return Camera; }
+
+	FORCEINLINE float GetCurrentForwardSpeed() const { return CurrentForwardSpeed; };
 };
