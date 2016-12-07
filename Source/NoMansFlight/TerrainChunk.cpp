@@ -6,6 +6,9 @@
 #include "RuntimeMeshLibrary.h"
 #include "TerrainGen.h"
 
+DECLARE_CYCLE_STAT(TEXT("TerrainChunk ~ GenerateMesh"), STAT_GenerateMesh, STATGROUP_TerrainGen);
+DECLARE_CYCLE_STAT(TEXT("TerrainChunk ~ Init"), STAT_ChunkInit, STATGROUP_TerrainGen);
+DECLARE_CYCLE_STAT(TEXT("TerrainChunk ~ OnDestroyed"), STAT_OnDestroyed, STATGROUP_TerrainGen);
 
 // Sets default values for this component's properties
 UTerrainChunk::UTerrainChunk()
@@ -13,7 +16,7 @@ UTerrainChunk::UTerrainChunk()
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
 	bWantsBeginPlay = true;
-	PrimaryComponentTick.bCanEverTick = true;
+	PrimaryComponentTick.bCanEverTick = false;
 	
 	Id = -1;
 	// ...
@@ -35,6 +38,8 @@ void UTerrainChunk::BeginPlay()
 
 void UTerrainChunk::Init(int32 ChunkId)
 {
+	SCOPE_CYCLE_COUNTER(STAT_ChunkInit);
+	
 	Id = ChunkId;
 	
 	TerrainGen = Cast<ATerrainGen>(GetOwner());
@@ -80,6 +85,8 @@ void UTerrainChunk::TickComponent( float DeltaTime, ELevelTick TickType, FActorC
 
 void UTerrainChunk::GenerateMesh()
 {
+	SCOPE_CYCLE_COUNTER(STAT_GenerateMesh);
+	
 	TArray<FRuntimeMeshVertexSimple> Vertices;
 	TArray<int32> Triangles;
 	int32 ResX = NoiseParams.ResX;
@@ -151,6 +158,7 @@ void UTerrainChunk::GenerateMesh()
 
 void UTerrainChunk::OnComponentDestroyed(bool bDestroyingHierarchy)
 {
+	SCOPE_CYCLE_COUNTER(STAT_OnDestroyed);
 	RuntimeMesh->ClearMeshSection(Id);
 }
 

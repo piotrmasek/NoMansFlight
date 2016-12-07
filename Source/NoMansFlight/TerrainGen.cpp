@@ -6,6 +6,11 @@
 #include "TerrainChunk.h"
 #include "RuntimeMeshComponent.h"
 
+DECLARE_CYCLE_STAT(TEXT("TerrainGen ~ UpdateChunks"), STAT_UpdateChunks, STATGROUP_TerrainGen);
+DECLARE_CYCLE_STAT(TEXT("TerrainGen ~ CreateChunk"), STAT_CreateChunk, STATGROUP_TerrainGen);
+DECLARE_CYCLE_STAT(TEXT("TerrainGen ~ RemoveChunk"), STAT_RemoveChunk, STATGROUP_TerrainGen);
+DECLARE_CYCLE_STAT(TEXT("TerrainGen ~ GenHeightMap"), STAT_GenHeightMap, STATGROUP_TerrainGen);
+
 // Sets default values
 ATerrainGen::ATerrainGen()
 {
@@ -28,13 +33,6 @@ ATerrainGen::ATerrainGen()
 void ATerrainGen::BeginPlay()
 {
 	Super::BeginPlay();
-
-	/*TArray<float> HeightMap = GenerateHeightMap(ResX, ResY, Scale, Octaves, Persistence, Lacunarity, Offset, Seed);
-	CreateMesh(HeightMap);*/
-	//for (int i = 0; i < 9; i++)
-	//{
-	//	CreateChunk(FIntVector{ i });
-	//}
 	
 	FTimerHandle DummyHandle;
 	FTimerDelegate TimerCallback;
@@ -55,6 +53,8 @@ void ATerrainGen::Tick( float DeltaTime )
 
 void ATerrainGen::GenerateHeightMap(TArray<float>& OutHeightMap, int32 SizeX, int32 SizeY, float Scale, int32 Octaves, float Persistance, float Lacunarity, FVector2D Offset, int32 Seed)
 {
+	SCOPE_CYCLE_COUNTER(STAT_GenHeightMap);
+	
 	OutHeightMap.Empty(SizeX * SizeY);
 
 	TArray<FVector2D> OctaveOffsets;
@@ -187,11 +187,13 @@ void ATerrainGen::CreateMesh(const TArray<float>& HeightMap)
 
 void ATerrainGen::UpdateChunks()
 {
+	SCOPE_CYCLE_COUNTER(STAT_UpdateChunks);
+	
 	FVector PlayerPos = UGameplayStatics::GetPlayerPawn(GetWorld(), 0)->GetActorLocation();//TODO: various playerids?
-	UE_LOG(LogTemp, Log, TEXT("PPos = %s"), *PlayerPos.ToString());
+	//UE_LOG(LogTemp, Log, TEXT("PPos = %s"), *PlayerPos.ToString());
 	PlayerPos /= ChunkSize;
 	FIntVector PlayerChunkCoord{ (int32)PlayerPos.X, (int32)PlayerPos.Y, (int32)PlayerPos.Z };
-	UE_LOG(LogTemp, Log, TEXT("CCoord = %s"), *PlayerChunkCoord.ToString());
+	//UE_LOG(LogTemp, Log, TEXT("CCoord = %s"), *PlayerChunkCoord.ToString());
 	for(int32 y = PlayerChunkCoord.Y - ChunkVisibilityRange; y <= PlayerChunkCoord.Y + ChunkVisibilityRange; ++y)
 		for (int32 x = PlayerChunkCoord.X - ChunkVisibilityRange; x <= PlayerChunkCoord.X + ChunkVisibilityRange; ++x)
 		{
@@ -214,6 +216,7 @@ void ATerrainGen::UpdateChunks()
 
 void ATerrainGen::CreateChunk(FIntVector ChunkCoord)
 {
+	SCOPE_CYCLE_COUNTER(STAT_CreateChunk);
 	FName ChunkName{ *FString::Printf(TEXT("TerrainChunk_%d_%d"), ChunkCoord.X, ChunkCoord.Y) };
 
 	UTerrainChunk* NewChunk = NewObject<UTerrainChunk>(this, ChunkName);
@@ -229,8 +232,15 @@ void ATerrainGen::CreateChunk(FIntVector ChunkCoord)
 
 void ATerrainGen::RemoveChunk(UTerrainChunk* ChunkToRemove)
 {
+	SCOPE_CYCLE_COUNTER(STAT_RemoveChunk);
 	TerrainChunks.Remove(ChunkToRemove);
 	ChunkToRemove->DestroyComponent();
 }
 
-
+#if WITH_EDITOR
+void ATerrainGen::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+	this->UpdateDefaultConfigFile();
+}
+#endif

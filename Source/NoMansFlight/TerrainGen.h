@@ -28,10 +28,10 @@ public:
 	
 	void CreateMesh(const TArray<float>& HeightMap);
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Config)
 	FVector ChunkSize;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Config)
 	int32 ChunkVisibilityRange;
 	
 
@@ -55,4 +55,10 @@ private:
 	void CreateChunk(FIntVector ChunkCoord);
 	void RemoveChunk(class UTerrainChunk* ChunkToRemove);
 	
+public:
+
+#if WITH_EDITOR
+virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif
+
 };

@@ -1,6 +1,9 @@
 #pragma once
 #include "HelperTypes.generated.h"
 
+
+DECLARE_STATS_GROUP(TEXT("TerrainGen"), STATGROUP_TerrainGen, STATCAT_Advanced);
+
 USTRUCT()
 struct FTerrainLayer
 {
