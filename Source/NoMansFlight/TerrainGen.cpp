@@ -38,6 +38,13 @@ void ATerrainGen::BeginPlay()
 	FTimerDelegate TimerCallback;
 	TimerCallback.BindLambda([this]() { bUpdateChunks = true; });
 	GetWorld()->GetTimerManager().SetTimer(DummyHandle, TimerCallback, 0.5f, true); //TODO: add timer settings n stuff
+	
+	//if (Water)
+	//{
+	//	Water->SetWorldScale3D(FVector(ChunkSize.X / 100.f * ChunkVisibilityRange, 
+	//		ChunkSize.Y / 100.f * ChunkVisibilityRange, 1.f)); // /100.f for plane mesh, temp
+	//}
+		
 }
 
 // Called every frame
@@ -62,8 +69,8 @@ void ATerrainGen::GenerateHeightMap(TArray<float>& OutHeightMap, int32 SizeX, in
 	FMath::RandInit(Seed);
 	for (int32 i = 0; i < Octaves; ++i)
 	{
-		float OffsetX = FMath::FRandRange(-10000.f, 10000.f) + Offset.X;
-		float OffsetY = FMath::FRandRange(-10000.f, 10000.f) - Offset.Y;
+		float OffsetX = FMath::FRandRange(-10000.f, 10000.f) - Offset.X;
+		float OffsetY = FMath::FRandRange(-10000.f, 10000.f) + Offset.Y;
 		OctaveOffsets.Add(FVector2D{ OffsetX, OffsetY });
 	}
 
@@ -107,10 +114,10 @@ void ATerrainGen::GenerateHeightMap(TArray<float>& OutHeightMap, int32 SizeX, in
 		}
 	}
 
-	for (float& NoiseHeight : OutHeightMap)
-	{
-		NoiseHeight = (NoiseHeight - MinNoiseHeight) / (MaxNoiseHeight - MinNoiseHeight);
-	}
+	//for (float& NoiseHeight : OutHeightMap)
+	//{
+	//	NoiseHeight = (NoiseHeight - MinNoiseHeight) / (MaxNoiseHeight - MinNoiseHeight);
+	//}
 }
 
 void ATerrainGen::CreateMesh(const TArray<float>& HeightMap)
@@ -194,6 +201,17 @@ void ATerrainGen::UpdateChunks()
 	PlayerPos /= ChunkSize;
 	FIntVector PlayerChunkCoord{ (int32)PlayerPos.X, (int32)PlayerPos.Y, (int32)PlayerPos.Z };
 	//UE_LOG(LogTemp, Log, TEXT("CCoord = %s"), *PlayerChunkCoord.ToString());
+	
+	
+	for (int i = TerrainChunks.Num() - 1; i >= 0; --i)
+	{
+		if (FMath::Abs(TerrainChunks[i]->ChunkCoord.X - PlayerChunkCoord.X) > ChunkVisibilityRange || FMath::Abs(TerrainChunks[i]->ChunkCoord.Y - PlayerChunkCoord.Y) > ChunkVisibilityRange)
+		{
+			RemoveChunk(TerrainChunks[i]);
+		}
+	}
+	
+	
 	for(int32 y = PlayerChunkCoord.Y - ChunkVisibilityRange; y <= PlayerChunkCoord.Y + ChunkVisibilityRange; ++y)
 		for (int32 x = PlayerChunkCoord.X - ChunkVisibilityRange; x <= PlayerChunkCoord.X + ChunkVisibilityRange; ++x)
 		{
@@ -203,13 +221,7 @@ void ATerrainGen::UpdateChunks()
 			}
 		}
 
-	for (auto& Chunk : TerrainChunks)
-	{
-		if (FMath::Abs(Chunk->ChunkCoord.X - PlayerChunkCoord.X) > ChunkVisibilityRange || FMath::Abs(Chunk->ChunkCoord.Y - PlayerChunkCoord.Y) > ChunkVisibilityRange)
-		{
-			RemoveChunk(Chunk);
-		}
-	}
+
 
 
 }
@@ -227,13 +239,13 @@ void ATerrainGen::CreateChunk(FIntVector ChunkCoord)
 	
 	FAttachmentTransformRules TransRules{ EAttachmentRule::KeepWorld, false };
 	NewChunk->AttachToComponent(GetRootComponent(), TransRules);
-	NewChunk->Init(RuntimeMesh->FirstAvailableMeshSectionIndex(0));
+	NewChunk->Init(RuntimeMesh->FirstAvailableMeshSectionIndex());
 }
 
 void ATerrainGen::RemoveChunk(UTerrainChunk* ChunkToRemove)
 {
 	SCOPE_CYCLE_COUNTER(STAT_RemoveChunk);
-	TerrainChunks.Remove(ChunkToRemove);
+	TerrainChunks.RemoveSingleSwap(ChunkToRemove, false);
 	ChunkToRemove->DestroyComponent();
 }
 

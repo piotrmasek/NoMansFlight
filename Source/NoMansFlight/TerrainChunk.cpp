@@ -57,18 +57,24 @@ void UTerrainChunk::Init(int32 ChunkId)
 	NoiseParams = TerrainGen->NoiseParams;
 	MeshParams = TerrainGen->MeshParams;
 	
-	SetWorldLocation(FVector{ ChunkCoord.X * ChunkSize.X, ChunkCoord.Y * ChunkSize.Y, 0.f });
+
+	FVector Location{ ChunkCoord.X * ChunkSize.X, ChunkCoord.Y * ChunkSize.Y, 0.f };
+
+	Location.X -= FMath::Sign(Location.X) * ChunkSize.X / NoiseParams.ResX;
+	Location.Y -= FMath::Sign(Location.Y) * ChunkSize.Y / NoiseParams.ResY;
+
+	SetWorldLocation(Location);
 
 	
 	
-		ATerrainGen::GenerateHeightMap(HeightMap,
-		NoiseParams.ResX,
-		NoiseParams.ResY,
+	ATerrainGen::GenerateHeightMap(HeightMap,
+		NoiseParams.ResX + 2,
+		NoiseParams.ResY + 2,
 		NoiseParams.Scale,
 		NoiseParams.Octaves,
 		NoiseParams.Persistence,
 		NoiseParams.Lacunarity,
-		FVector2D{ GetComponentLocation() },
+		FVector2D{ static_cast<float>(ChunkCoord.X * NoiseParams.ResX), static_cast<float>(ChunkCoord.Y * NoiseParams.ResY) },
 		NoiseParams.Seed);
 	
 
@@ -92,7 +98,7 @@ void UTerrainChunk::GenerateMesh()
 	int32 ResX = NoiseParams.ResX;
 	int32 ResY = NoiseParams.ResY;
 
-	Vertices.Reserve(ResX * ResY);
+	Vertices.Reserve((ResX) * (ResY));
 
 	FVector MeshScale = ChunkSize;
 	MeshScale.X /= ResX;
@@ -101,19 +107,19 @@ void UTerrainChunk::GenerateMesh()
 
 	RuntimeMesh->SetRelativeScale3D(MeshScale);
 
-	float TopLeftX = (ResX - 1) / 2.f + ChunkCoord.X * ResX;
-	float TopLeftY = (ResY - 1) / -2.f + ChunkCoord.Y * ResY;
+	float TopLeftX = (ResX) / 2.f + ChunkCoord.X * (ResX);
+	float TopLeftY = (ResY) / -2.f + ChunkCoord.Y * (ResY);
 
 	int vertexIndex = 0;
-	for (int y = 0; y < ResY; ++y)
-		for (int x = 0; x < ResX; ++x)
+	for (int y = 0; y < ResY + 2; ++y)
+		for (int x = 0; x < ResX + 2; ++x)
 		{
 			FRuntimeMeshVertexSimple Vertex;
 
 			FVector Position;
 			Position.X = TopLeftX - x;
 			Position.Y = TopLeftY + y;
-			Position.Z = HeightMap[y * ResX + x] * MeshParams.HeightMultiplier;
+			Position.Z = HeightMap[y * (ResX + 2) + x] * MeshParams.HeightMultiplier;
 			Vertex.Position = Position;
 
 			FColor Color = FColor::Green;
@@ -137,19 +143,21 @@ void UTerrainChunk::GenerateMesh()
 			Vertex.UV0 = UV0;
 			Vertices.Add(FRuntimeMeshVertexSimple{ Position, Color }); //TODO: pixel colors
 
-			if (x < ResX - 1 && y < ResY - 1)
+			if (x < ResX && y < ResY)
 			{
 				Triangles.Add(vertexIndex);
-				Triangles.Add(vertexIndex + ResX + 1);
-				Triangles.Add(vertexIndex + ResX);
+				Triangles.Add(vertexIndex + ResX + 2 + 1);
+				Triangles.Add(vertexIndex + ResX + 2);
 
-				Triangles.Add(vertexIndex + ResX + 1);
+				Triangles.Add(vertexIndex + ResX + 2 + 1);
 				Triangles.Add(vertexIndex);
 				Triangles.Add(vertexIndex + 1);
 			}
 
 			vertexIndex++;
 		}
+
+	//URuntimeMeshLibrary::CreateGridMeshTriangles(ResX, ResY, false, Triangles);
 
 	if (MeshParams.Material != nullptr)
 		RuntimeMesh->SetMaterial(Id, MeshParams.Material);
