@@ -25,8 +25,6 @@ public:
 
 	//UFUNCTION(BlueprintCallable)
 	static void GenerateHeightMap(TArray<float>& OutHeightMap, int32 SizeX, int32 SizeY, float Scale, int32 Octaves, float Persistence, float Lacunarity, FVector2D Offset, int32 Seed);
-	
-	void CreateMesh(const TArray<float>& HeightMap);
 
 	UPROPERTY(EditAnywhere, Config)
 	FVector ChunkSize;

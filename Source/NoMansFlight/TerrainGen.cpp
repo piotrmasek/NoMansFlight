@@ -38,7 +38,7 @@ void ATerrainGen::BeginPlay()
 	FTimerDelegate TimerCallback;
 	TimerCallback.BindLambda([this]() { bUpdateChunks = true; });
 	GetWorld()->GetTimerManager().SetTimer(DummyHandle, TimerCallback, 0.5f, true); //TODO: add timer settings n stuff
-	
+	//this->LoadConfig();
 	//if (Water)
 	//{
 	//	Water->SetWorldScale3D(FVector(ChunkSize.X / 100.f * ChunkVisibilityRange, 
@@ -65,17 +65,21 @@ void ATerrainGen::GenerateHeightMap(TArray<float>& OutHeightMap, int32 SizeX, in
 	OutHeightMap.Empty(SizeX * SizeY);
 
 	TArray<FVector2D> OctaveOffsets;
-	
+	float Amplitude = 1.f;
+	float Frequency = 1.f;
+	float MaxHeight = 0.f;
+
+
 	FMath::RandInit(Seed);
 	for (int32 i = 0; i < Octaves; ++i)
 	{
 		float OffsetX = FMath::FRandRange(-10000.f, 10000.f) - Offset.X;
 		float OffsetY = FMath::FRandRange(-10000.f, 10000.f) + Offset.Y;
 		OctaveOffsets.Add(FVector2D{ OffsetX, OffsetY });
-	}
 
-	float MaxNoiseHeight = MIN_flt;
-	float MinNoiseHeight = MAX_flt;
+		MaxHeight += Amplitude;
+		Amplitude *= Persistance;
+	}
 
 	float HalfSizeX = SizeX / 2.f;
 	float HalfSizeY = SizeY / 2.f;
@@ -85,10 +89,11 @@ void ATerrainGen::GenerateHeightMap(TArray<float>& OutHeightMap, int32 SizeX, in
 	{
 		for (int32 x = 0; x < SizeX; ++x)
 		{
-			float Amplitude = 1.f;
-			float Frequency = 1.f;
+
 			float NoiseHeight = 0.f;
-			
+			Amplitude = 1.f;
+			Frequency = 1.f;
+
 			for (const auto& OctaveOffset : OctaveOffsets)
 			{
 				float SampleX = (x - HalfSizeX + OctaveOffset.X) / Scale * Frequency;
@@ -101,95 +106,12 @@ void ATerrainGen::GenerateHeightMap(TArray<float>& OutHeightMap, int32 SizeX, in
 				Frequency *= Lacunarity;
 			}
 
-			if (NoiseHeight > MaxNoiseHeight)
-			{
-				MaxNoiseHeight = NoiseHeight;
-			}
-			else if (NoiseHeight < MinNoiseHeight)
-			{
-				MinNoiseHeight = NoiseHeight;
-			}
-
+			NoiseHeight = (NoiseHeight + 1.f) / (MaxHeight); //TODO: normalization factor as property?
+			//NoiseHeight = FMath::Clamp(NoiseHeight, 0.f, FLT_MAX);
 			OutHeightMap.Add(NoiseHeight);
 		}
 	}
 
-	//for (float& NoiseHeight : OutHeightMap)
-	//{
-	//	NoiseHeight = (NoiseHeight - MinNoiseHeight) / (MaxNoiseHeight - MinNoiseHeight);
-	//}
-}
-
-void ATerrainGen::CreateMesh(const TArray<float>& HeightMap)
-{	
-	TArray<FRuntimeMeshVertexSimple> Vertices;
-	TArray<int32> Triangles;
-	float ResX = NoiseParams.ResX;
-	float ResY = NoiseParams.ResY;
-
-	FVector MeshScale = ChunkSize;
-	MeshScale.X /= ResX;
-	MeshScale.Y /= ResY;
-	MeshScale.Z /= MeshParams.HeightMultiplier;
-
-	RuntimeMesh->SetRelativeScale3D(MeshScale);
-
-	
-
-	float TopLeftX = (ResX - 1) / 2.f;
-	float TopLeftY = (ResY - 1) / -2.f;
-
-	int vertexIndex = 0;
-	for (int y = 0; y < ResY; ++y)
-		for (int x = 0; x < ResX; ++x)
-		{
-			FRuntimeMeshVertexSimple Vertex;
-			
-			FVector Position;
-			Position.X = TopLeftX - x;
-			Position.Y = TopLeftY + y;
-			Position.Z = HeightMap[y * ResX + x] * MeshParams.HeightMultiplier;
-			Vertex.Position = Position;
-
-			FColor Color = FColor::Green;
-			if (MeshParams.TerrainLayers.Num() > 0)
-			{
-				//TODO: sorting
-				for (const FTerrainLayer& Layer : MeshParams.TerrainLayers)
-				{
-					if (Position.Z < Layer.MaxHeight)
-					{
-						Color = Layer.Color;
-						break;
-					}
-				}
-			}
-			Vertex.Color = Color;
-
-			FVector2D UV0;
-			UV0.X = x / ResX;
-			UV0.Y = y / ResY;
-			Vertex.UV0 = UV0;
-			Vertices.Add(FRuntimeMeshVertexSimple{ Position, Color }); //TODO: pixel colors
-			
-			if (x < ResX - 1 && y < ResY - 1)
-			{
-				Triangles.Add(vertexIndex);
-				Triangles.Add(vertexIndex + ResX + 1);
-				Triangles.Add(vertexIndex + ResX);
-
-				Triangles.Add(vertexIndex + ResX + 1);
-				Triangles.Add(vertexIndex);
-				Triangles.Add(vertexIndex + 1);
-			}
-
-			vertexIndex++;
-		}
-	
-	if (MeshParams.Material != nullptr)
-		RuntimeMesh->SetMaterial(0, MeshParams.Material);
-	RuntimeMesh->CreateMeshSection(0, Vertices, Triangles, true, EUpdateFrequency::Infrequent, ESectionUpdateFlags::MoveArrays);
-	
 }
 
 void ATerrainGen::UpdateChunks()
