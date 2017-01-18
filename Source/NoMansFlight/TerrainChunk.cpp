@@ -128,9 +128,9 @@ void UTerrainChunk::GenerateMesh()
 				//TODO: sorting
 				for (const FTerrainLayer& Layer : MeshParams.TerrainLayers)
 				{
+					Color = Layer.Color;
 					if (Position.Z < Layer.MaxHeight)
-					{
-						Color = Layer.Color;
+					{				
 						break;
 					}
 				}

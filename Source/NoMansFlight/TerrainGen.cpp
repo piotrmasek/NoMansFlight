@@ -5,6 +5,7 @@
 #include "../../Plugins/SimplexNoise/Source/SimplexNoise/Public/SimplexNoiseBPLibrary.h"
 #include "TerrainChunk.h"
 #include "RuntimeMeshComponent.h"
+#include "EngineGlobals.h"
 
 DECLARE_CYCLE_STAT(TEXT("TerrainGen ~ UpdateChunks"), STAT_UpdateChunks, STATGROUP_TerrainGen);
 DECLARE_CYCLE_STAT(TEXT("TerrainGen ~ CreateChunk"), STAT_CreateChunk, STATGROUP_TerrainGen);
@@ -21,9 +22,6 @@ ATerrainGen::ATerrainGen()
 	bUpdateChunks = true;
 	ChunkSize = FVector{ 5000.f, 5000.f, 1000.f };
 	ChunkVisibilityRange = 3;
-
-
-
 	
 	
 	RuntimeMesh = CreateDefaultSubobject<URuntimeMeshComponent>(TEXT("Runtime Mesh"));
@@ -38,7 +36,10 @@ void ATerrainGen::BeginPlay()
 	FTimerDelegate TimerCallback;
 	TimerCallback.BindLambda([this]() { bUpdateChunks = true; });
 	GetWorld()->GetTimerManager().SetTimer(DummyHandle, TimerCallback, 0.5f, true); //TODO: add timer settings n stuff
-	//this->LoadConfig();
+#if !WITH_EDITOR
+	if(GEngine && GEngine->GetNetMode(GWorld) == NM_Standalone)
+		this->LoadConfig();
+#endif
 	//if (Water)
 	//{
 	//	Water->SetWorldScale3D(FVector(ChunkSize.X / 100.f * ChunkVisibilityRange, 
@@ -107,7 +108,7 @@ void ATerrainGen::GenerateHeightMap(TArray<float>& OutHeightMap, int32 SizeX, in
 			}
 
 			NoiseHeight = (NoiseHeight + 1.f) / (MaxHeight); //TODO: normalization factor as property?
-			//NoiseHeight = FMath::Clamp(NoiseHeight, 0.f, FLT_MAX);
+			NoiseHeight = FMath::Clamp(NoiseHeight, 0.f, FLT_MAX);
 			OutHeightMap.Add(NoiseHeight);
 		}
 	}
