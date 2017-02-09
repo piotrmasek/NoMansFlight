@@ -19,9 +19,6 @@ UTerrainChunk::UTerrainChunk()
 	PrimaryComponentTick.bCanEverTick = false;
 	
 	Id = -1;
-	// ...
-
-	//RuntimeMesh = CreateDefaultSubobject<URuntimeMeshComponent>(TEXT("Runtime Mesh"));
 
 }
 
@@ -110,7 +107,7 @@ void UTerrainChunk::GenerateMesh()
 	float TopLeftX = (ResX) / 2.f + ChunkCoord.X * (ResX);
 	float TopLeftY = (ResY) / -2.f + ChunkCoord.Y * (ResY);
 
-	int vertexIndex = 0;
+	int VertexIndex = 0;
 	for (int y = 0; y < ResY + 2; ++y)
 		for (int x = 0; x < ResX + 2; ++x)
 		{
@@ -141,20 +138,20 @@ void UTerrainChunk::GenerateMesh()
 			UV0.X = x / ResX;
 			UV0.Y = y / ResY;
 			Vertex.UV0 = UV0;
-			Vertices.Add(FRuntimeMeshVertexSimple{ Position, Color }); //TODO: pixel colors
+			Vertices.Add(FRuntimeMeshVertexSimple{ Position, Color });
 
 			if (x < ResX && y < ResY)
 			{
-				Triangles.Add(vertexIndex);
-				Triangles.Add(vertexIndex + ResX + 2 + 1);
-				Triangles.Add(vertexIndex + ResX + 2);
+				Triangles.Add(VertexIndex);
+				Triangles.Add(VertexIndex + ResX + 2 + 1);
+				Triangles.Add(VertexIndex + ResX + 2);
 
-				Triangles.Add(vertexIndex + ResX + 2 + 1);
-				Triangles.Add(vertexIndex);
-				Triangles.Add(vertexIndex + 1);
+				Triangles.Add(VertexIndex + ResX + 2 + 1);
+				Triangles.Add(VertexIndex);
+				Triangles.Add(VertexIndex + 1);
 			}
 
-			vertexIndex++;
+			VertexIndex++;
 		}
 
 	//URuntimeMeshLibrary::CreateGridMeshTriangles(ResX, ResY, false, Triangles);

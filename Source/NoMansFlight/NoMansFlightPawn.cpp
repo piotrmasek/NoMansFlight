@@ -81,7 +81,12 @@ void ANoMansFlightPawn::SetupPlayerInputComponent(class UInputComponent* PlayerI
 	PlayerInputComponent->BindAxis("MoveUp", this, &ANoMansFlightPawn::MoveUpInput);
 	PlayerInputComponent->BindAxis("MoveRight", this, &ANoMansFlightPawn::MoveRightInput);
 
-	//PlayerInputComponent->BindAction("Exit", EInputEvent::IE_Released, this, &FGenericPlatformMisc::RequestExit(false));
+	PlayerInputComponent->BindAction("Exit", EInputEvent::IE_Released, this, &ANoMansFlightPawn::ExitInput);
+}
+
+void ANoMansFlightPawn::ExitInput()
+{
+	FGenericPlatformMisc::RequestExit(false);
 }
 
 void ANoMansFlightPawn::ThrustInput(float Val)

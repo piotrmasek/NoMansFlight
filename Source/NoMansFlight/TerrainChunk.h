@@ -42,10 +42,9 @@ private:
 	UPROPERTY()
 	class ATerrainGen* TerrainGen;
 	
-	
 	FNoiseParams NoiseParams;
 	FMeshParams MeshParams;
-
+	
 	TArray<float> HeightMap;
 	
 	
@@ -54,5 +53,4 @@ private:
 	
 public:
 	virtual void OnComponentDestroyed(bool bDestroyingHierarchy) override;
-
 };

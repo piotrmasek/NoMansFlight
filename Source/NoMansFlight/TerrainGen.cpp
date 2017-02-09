@@ -40,11 +40,6 @@ void ATerrainGen::BeginPlay()
 	if(GEngine && GEngine->GetNetMode(GWorld) == NM_Standalone)
 		this->LoadConfig();
 #endif
-	//if (Water)
-	//{
-	//	Water->SetWorldScale3D(FVector(ChunkSize.X / 100.f * ChunkVisibilityRange, 
-	//		ChunkSize.Y / 100.f * ChunkVisibilityRange, 1.f)); // /100.f for plane mesh, temp
-	//}
 		
 }
 
@@ -63,6 +58,7 @@ void ATerrainGen::GenerateHeightMap(TArray<float>& OutHeightMap, int32 SizeX, in
 {
 	SCOPE_CYCLE_COUNTER(STAT_GenHeightMap);
 	
+	//Wyczyszczenie i rezerwacja miejsca w tablicy
 	OutHeightMap.Empty(SizeX * SizeY);
 
 	TArray<FVector2D> OctaveOffsets;
@@ -70,14 +66,16 @@ void ATerrainGen::GenerateHeightMap(TArray<float>& OutHeightMap, int32 SizeX, in
 	float Frequency = 1.f;
 	float MaxHeight = 0.f;
 
-
+	//Ustawienie ziarna generatora liczb losowych
 	FMath::RandInit(Seed);
 	for (int32 i = 0; i < Octaves; ++i)
 	{
+		//Obliczenie i zapisanie przesuniêcia szumu na bazie podanego ziarna
 		float OffsetX = FMath::FRandRange(-10000.f, 10000.f) - Offset.X;
 		float OffsetY = FMath::FRandRange(-10000.f, 10000.f) + Offset.Y;
 		OctaveOffsets.Add(FVector2D{ OffsetX, OffsetY });
 
+		//Obliczenie maksymalnej mo¿liwej wysokoœci, w celu póŸniejszej normalizacji
 		MaxHeight += Amplitude;
 		Amplitude *= Persistance;
 	}
@@ -85,7 +83,7 @@ void ATerrainGen::GenerateHeightMap(TArray<float>& OutHeightMap, int32 SizeX, in
 	float HalfSizeX = SizeX / 2.f;
 	float HalfSizeY = SizeY / 2.f;
 
-
+	//G³owne pêtle algorytmu - wykonywane dla ka¿dego punktu siatki
 	for(int32 y = 0; y < SizeY; ++y)
 	{
 		for (int32 x = 0; x < SizeX; ++x)
@@ -95,20 +93,27 @@ void ATerrainGen::GenerateHeightMap(TArray<float>& OutHeightMap, int32 SizeX, in
 			Amplitude = 1.f;
 			Frequency = 1.f;
 
+			//Dla ka¿dej oktawy
 			for (const auto& OctaveOffset : OctaveOffsets)
 			{
+				//Obliczenie wspó³rzêdnych szumu dla bie¿¹cej lokalizacji
 				float SampleX = (x - HalfSizeX + OctaveOffset.X) / Scale * Frequency;
 				float SampleY = (y - HalfSizeY + OctaveOffset.Y) / Scale * Frequency;
 
 				float Perlin = USimplexNoiseBPLibrary::SimplexNoiseInRange2D(SampleX, SampleY, -1.f, 1.f);
+			
 				NoiseHeight += Perlin * Amplitude;
 
 				Amplitude *= Persistance;
 				Frequency *= Lacunarity;
 			}
 
-			NoiseHeight = (NoiseHeight + 1.f) / (MaxHeight); //TODO: normalization factor as property?
+			//Normalizacja wzglêdem maksymalnej mo¿liwej wysokoœci
+			NoiseHeight = (NoiseHeight + 1.f) / (MaxHeight);
+
+			//"Przyciêcie" ujemnych wartoœci do 0
 			NoiseHeight = FMath::Clamp(NoiseHeight, 0.f, FLT_MAX);
+			
 			OutHeightMap.Add(NoiseHeight);
 		}
 	}
@@ -119,22 +124,24 @@ void ATerrainGen::UpdateChunks()
 {
 	SCOPE_CYCLE_COUNTER(STAT_UpdateChunks);
 	
-	FVector PlayerPos = UGameplayStatics::GetPlayerPawn(GetWorld(), 0)->GetActorLocation();//TODO: various playerids?
-	//UE_LOG(LogTemp, Log, TEXT("PPos = %s"), *PlayerPos.ToString());
+	//Pobranie pozycji statku gracza
+	FVector PlayerPos = UGameplayStatics::GetPlayerPawn(GetWorld(), 0)->GetActorLocation();
+
+	//Obliczenie pozycji statku we spó³rzêdnych blokowych
 	PlayerPos /= ChunkSize;
 	FIntVector PlayerChunkCoord{ (int32)PlayerPos.X, (int32)PlayerPos.Y, (int32)PlayerPos.Z };
-	//UE_LOG(LogTemp, Log, TEXT("CCoord = %s"), *PlayerChunkCoord.ToString());
 	
-	
+	//Usuniêcie bloków poza zasiêgiem
 	for (int i = TerrainChunks.Num() - 1; i >= 0; --i)
 	{
-		if (FMath::Abs(TerrainChunks[i]->ChunkCoord.X - PlayerChunkCoord.X) > ChunkVisibilityRange || FMath::Abs(TerrainChunks[i]->ChunkCoord.Y - PlayerChunkCoord.Y) > ChunkVisibilityRange)
+		if (FMath::Abs(TerrainChunks[i]->ChunkCoord.X - PlayerChunkCoord.X) > ChunkVisibilityRange || 
+			FMath::Abs(TerrainChunks[i]->ChunkCoord.Y - PlayerChunkCoord.Y) > ChunkVisibilityRange)
 		{
 			RemoveChunk(TerrainChunks[i]);
 		}
 	}
 	
-	
+	//Sprawdzenie czy wszystkie bloki w zasiêgu istniej¹, jeœli nie utworzenie ich
 	for(int32 y = PlayerChunkCoord.Y - ChunkVisibilityRange; y <= PlayerChunkCoord.Y + ChunkVisibilityRange; ++y)
 		for (int32 x = PlayerChunkCoord.X - ChunkVisibilityRange; x <= PlayerChunkCoord.X + ChunkVisibilityRange; ++x)
 		{
