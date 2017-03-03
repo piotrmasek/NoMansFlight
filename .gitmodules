@@ -1,0 +1,6 @@
+[submodule "Plugins/UE4RuntimeMeshComponent"]
+	path = Plugins/UE4RuntimeMeshComponent
+	url = https://github.com/Koderz/UE4RuntimeMeshComponent/
+[submodule "Plugins/SimplexNoise"]
+	path = Plugins/SimplexNoise
+	url = https://github.com/devdad/SimplexNoise
